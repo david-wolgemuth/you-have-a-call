@@ -72,7 +72,7 @@ final class CallWindow: NSObject, NSWindowDelegate {
 
     func ring() {
         if speaker?.isRunning == true { return }
-        speaker = speak("You have a call from \(event.title ?? "your meeting")")
+        speaker = speak("You have a call: \(event.title ?? "")")
     }
 
     func finish(snooze: Bool) {
