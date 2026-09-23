@@ -1,7 +1,7 @@
 # You Have a Call
 
 A small background macOS app that interrupts you when a video meeting starts.
-At the start time it opens a window above your other windows, takes focus, and a random `say` voice repeats "<meeting title> has started" every 8 seconds until you dismiss it.
+At the start time it opens a window above your other windows, takes focus, and a random `say` voice repeats "You have a call from <meeting title>" every 8 seconds until you dismiss it.
 
 It reads events from macOS Calendar, so Apple handles the Google sync. There is no Google sign-in, no polling of an API, and no LLM.
 
