@@ -52,6 +52,12 @@ func statusLabel(_ status: EKParticipantStatus?) -> (String, NSColor) {
     }
 }
 
+// `say` treats <...> as markup (dropping the rest of the sentence) and [[...]] as commands.
+func spoken(_ text: String) -> String {
+    text.replacingOccurrences(of: #"\[\[[^\]]*\]\]"#, with: "", options: .regularExpression)
+        .replacingOccurrences(of: #"<([^>]*)>"#, with: "$1", options: .regularExpression)
+}
+
 func alertKey(_ event: EKEvent) -> String {
     "\(event.calendarItemIdentifier)|\(event.startDate.timeIntervalSince1970)"
 }
@@ -129,7 +135,7 @@ final class CallWindow: NSObject, NSWindowDelegate {
         if speaker?.isRunning == true { return }
         let say = Process()
         say.executableURL = URL(fileURLWithPath: "/usr/bin/say")
-        say.arguments = ["-v", voices.randomElement() ?? "Zarvox", "\(event.title ?? "Your meeting") has started"]
+        say.arguments = ["-v", voices.randomElement() ?? "Zarvox", spoken("\(event.title ?? "Your meeting") has started")]
         try? say.run()
         speaker = say
     }
