@@ -26,7 +26,6 @@ The menu bar icon shows the next meeting and can pause alerts for an hour or unt
 
    ```sh
    xcode-select --install   # if you don't have the Command Line Tools
-   ./setup-signing.sh       # once; asks for your login password
    ./build.sh && ./install.sh
    ```
 
@@ -45,7 +44,8 @@ Logs go to `~/Library/Logs/you-have-a-call.log`.
 
 ## Notes for working on it
 
-- `setup-signing.sh` exists because macOS ties calendar permission to the code signature. An ad-hoc signature changes on every build and would re-prompt each time.
+- Run `./setup-signing.sh` once if you rebuild often. It asks for your login password.
+  macOS ties calendar permission to the code signature, and without this certificate `build.sh` falls back to an ad-hoc signature, which changes on every build and re-prompts each time.
 - `say` treats `<...>` as markup and `[[...]]` as commands, so `spoken()` strips them.
 - Not yet tested: a real Zoom link, and whether sync continues while Calendar.app is quit.
 
