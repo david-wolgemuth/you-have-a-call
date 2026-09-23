@@ -1,12 +1,18 @@
 # You Have a Call
 
 A macOS menu bar app that announces video meetings out loud and grabs focus when they start.
-It reads macOS Calendar, so there is no Google sign-in and no LLM.
+
+<kbd><img width="565" height="278" alt="Screenshot 2026-09-23 at 13 35 35" src="https://github.com/user-attachments/assets/ad0add65-6f74-4ae6-bb9c-b7cef28e025f" /></kbd>
+
+<kbd><img width="228" height="188" alt="Screenshot 2026-09-23 at 13 35 12" src="https://github.com/user-attachments/assets/94744261-4d8d-4d54-a92f-1508e4c06af1" /></kbd>
 
 ## What it does
 
 At a meeting's start time, a window takes focus and a random `say` voice repeats "You have a call: <title>" until you click **Dismiss** or **Snooze 1 min**.
+
 The window's color bar shows whether you accepted the invite.
+
+It reads from macOS Calendar - works if adding external calendars (i.e. Google Calendar).
 
 It alerts for events on your watched calendar that have a Meet or Zoom link and that you have not declined.
 The menu bar icon shows the next meeting and can pause alerts for an hour or until tomorrow.
