@@ -41,7 +41,7 @@ The first launch asks for full calendar access.
 
 ```sh
 # Print today's events on the watched calendars, with ALERT or the reason each is skipped.
-open -W -n --stdout /dev/stdout "build/You Have a Call.app" --args --list
+./list.sh
 
 # Show the alert for the next upcoming meeting right away.
 open -n "build/You Have a Call.app" --args --test
