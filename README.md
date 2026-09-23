@@ -3,9 +3,11 @@
 A small background macOS app that interrupts you when a video meeting starts.
 At the start time it opens a window above your other windows, takes focus, and a random `say` voice repeats "<meeting title> has started" every 8 seconds until you dismiss it.
 
-It reads events from macOS Calendar through EventKit, so Apple handles the Google sync. There is no Google sign-in, no polling of an API, and no LLM.
+It reads events from macOS Calendar, so Apple handles the Google sync. There is no Google sign-in, no polling of an API, and no LLM.
 
-## What alerts
+## What it does
+
+### Which meetings alert
 
 An event alerts when all of these hold:
 
@@ -14,18 +16,18 @@ An event alerts when all of these hold:
 - You have not declined it.
 - It has a Meet or Zoom link in its URL, location, or notes. Set `onlyVideoMeetings = false` to alert for every timed event.
 
-The colored bar shows your response: green for accepted, orange for not answered yet, yellow for maybe, and blue for events with no invite.
-
 If the app starts, or the Mac wakes, up to 5 minutes after a meeting began, it still alerts.
 
-## Buttons
+### The alert window
+
+The colored bar shows your response: green for accepted, orange for not answered yet, yellow for maybe, and blue for events with no invite.
 
 - **Dismiss** (Return or Esc) closes the alert.
 - **Snooze 1 min** closes it and shows it again 60 seconds later.
 
 Neither button changes your calendar. EventKit can read your response to an invite but cannot set it.
 
-## Menu bar
+### The menu bar icon
 
 A phone icon in the menu bar shows the next meeting that will alert, and has these items:
 
@@ -34,31 +36,42 @@ A phone icon in the menu bar shows the next meeting that will alert, and has the
 - **Test alert now** shows the alert for the next meeting.
 - **Quit You Have a Call** stops the app until the next login.
 
-## Build, install, and run
+## Set it up
 
-Requirements: the Xcode Command Line Tools (`xcode-select --install`). Xcode itself is not needed.
+1. **Add your Google account to macOS.** Open System Settings > Internet Accounts > Add Account > Google, sign in, and turn on Calendars.
+   If you see `DAAccountValidationDomain / error 100`, wait a minute. The account has finished adding in the background before.
+2. **Check the calendar in Calendar.app.** Your events should appear. Note the calendar's title in the sidebar, for example `david.wolgemuth@turquoise.health`.
+3. **Set the refresh interval.** In Calendar.app > Settings > Accounts, set Refresh Calendars to "Every 5 minutes". A meeting added later than that interval before its start may not alert.
+4. **Point the app at your calendar.** Put the title from step 2 in `watchedCalendars` in `app/Settings.swift`.
+5. **Install the Command Line Tools** with `xcode-select --install`. Xcode itself is not needed.
+6. **Create the signing certificate** with `./setup-signing.sh`. It asks for your Mac login password once.
+7. **Build and install** with `./build.sh && ./install.sh`.
+8. **Click Allow** when macOS asks whether "You Have a Call" can have full access to your Calendar. macOS also shows a "Background Items Added" notification, because the app now starts at login.
+9. **Check it works.** Run `./list.sh` to see today's events marked `ALERT` or with the reason each is skipped. Then choose **Test alert now** from the menu bar icon.
 
-```sh
-./build.sh      # compiles and signs build/You Have a Call.app
-./install.sh    # copies it to ~/Applications, starts it now and at every login
-```
+## Everyday use
 
-Run both after every change. `install.sh` restarts the running copy.
-
-`install.sh` writes a LaunchAgent to `~/Library/LaunchAgents/com.davidwolgemuth.you-have-a-call.plist`.
-`launchd` restarts the app about 10 seconds after a crash, but not after Quit from the menu.
-The app's output goes to `~/Library/Logs/you-have-a-call.log`.
-
-| To | Run |
+| To | Do |
 |---|---|
+| Stop alerts for a while | Menu bar icon > Pause |
 | Start it again after Quit | `open ~/Applications/"You Have a Call.app"` |
-| Stop it and remove it from login | `./install.sh --uninstall` |
-| Print today's events, with ALERT or the reason each is skipped | `./list.sh` |
+| See why a meeting did or did not alert | `./list.sh` |
+| Read the app's output | `~/Library/Logs/you-have-a-call.log` |
+| Change a setting | Edit `app/Settings.swift`, then `./build.sh && ./install.sh` |
+| Remove it and stop it starting at login | `./install.sh --uninstall` |
 
-The first launch asks for full calendar access.
-The first install also shows a macOS "Background Items Added" notification. The app then appears in System Settings > General > Login Items & Extensions.
+## Settings
 
-## Code layout
+| Constant in `app/Settings.swift` | Default | Meaning |
+|---|---|---|
+| `watchedCalendars` | `["david.wolgemuth@turquoise.health"]` | Calendar titles to watch, as shown in Calendar.app |
+| `onlyVideoMeetings` | `true` | Skip events without a Meet or Zoom link |
+| `repeatEvery` | `8` seconds | Gap between repeats of the voice |
+| `lateStartGrace` | `5` minutes | How late a start can be and still alert |
+
+## Working on the code
+
+### Code layout
 
 | File | Contents |
 |---|---|
@@ -68,47 +81,32 @@ The first install also shows a macOS "Background Items Added" notification. The 
 | `app/CallWindow.swift` | The alert window and its buttons |
 | `app/AppDelegate.swift` | Calendar access, the 10-second check, the menu bar icon |
 | `app/main.swift` | Starts the app |
+| `app/Info.plist` | Bundle ID and the reason shown in the calendar permission prompt |
 
-## Settings
+`build.sh` compiles every file in `app/` with `swiftc` into `build/You Have a Call.app`, then signs it.
+`install.sh` copies that app to `~/Applications` and restarts it, so run both after every change.
 
-Settings are constants in `app/Settings.swift`. Change one, then run `./build.sh && ./install.sh`.
+### Start at login
 
-| Constant | Default | Meaning |
-|---|---|---|
-| `watchedCalendars` | `["david.wolgemuth@turquoise.health"]` | Calendar titles to watch, as shown in Calendar.app |
-| `onlyVideoMeetings` | `true` | Skip events without a Meet or Zoom link |
-| `repeatEvery` | `8` seconds | Gap between repeats of the voice |
-| `lateStartGrace` | `5` minutes | How late a start can be and still alert |
+`install.sh` writes a LaunchAgent to `~/Library/LaunchAgents/com.davidwolgemuth.you-have-a-call.plist` and loads it with `launchctl`.
+`launchd` restarts the app about 10 seconds after a crash, but not after Quit from the menu, because Quit exits with status 0.
 
-## Code signing
+### Code signing
 
 macOS files the calendar permission under the app's code signature.
-An ad-hoc signature (`codesign --sign -`) changes on every build, which makes macOS ask for calendar access again after each rebuild.
-`build.sh` signs with a self-signed certificate named `You Have a Call Local Signing` in the login keychain instead, so the permission survives rebuilds.
+An ad-hoc signature (`codesign --sign -`) changes on every build, so macOS would ask for calendar access again after each rebuild.
+`build.sh` signs with the self-signed certificate `You Have a Call Local Signing` from `setup-signing.sh` instead.
+The permission then belongs to "this bundle ID, signed by this certificate", which stays the same across builds.
 
-One-time setup on a new Mac:
+### Speech quirks
 
-```sh
-openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
-  -subj "/CN=You Have a Call Local Signing" \
-  -addext "keyUsage=critical,digitalSignature" \
-  -addext "extendedKeyUsage=critical,codeSigning" \
-  -addext "basicConstraints=critical,CA:false"
-openssl pkcs12 -export -out id.p12 -inkey key.pem -in cert.pem -passout pass:tmp \
-  -name "You Have a Call Local Signing"
-security import id.p12 -k ~/Library/Keychains/login.keychain-db -P tmp -T /usr/bin/codesign
-rm key.pem cert.pem id.p12
+`say` reads `<...>` as markup and drops the rest of the sentence, and it runs `[[...]]` as commands.
+`spoken()` in `app/Speech.swift` strips both before speaking. The window still shows the original title.
 
-# Lets codesign use the key without a keychain prompt on every build. Asks for your login password.
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
-  -l "You Have a Call Local Signing" ~/Library/Keychains/login.keychain-db
-```
-
-Use `/usr/bin/openssl` (LibreSSL). Homebrew's OpenSSL 3 writes a `.p12` format that `security import` rejects unless you add `-legacy`.
-
-## Not done yet
+### Known gaps
 
 - Two meetings that start together open two windows, and both voices talk at once.
 - The Zoom link pattern has not been tested against a real Zoom invite.
+- It is not yet confirmed that macOS keeps syncing Google events while Calendar.app is quit.
 
-See `docs/design-options.md` for the approaches considered and why this one won.
+`docs/design-options.md` covers the approaches considered and why this one won.
