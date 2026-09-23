@@ -25,31 +25,53 @@ If the app starts, or the Mac wakes, up to 5 minutes after a meeting began, it s
 
 Neither button changes your calendar. EventKit can read your response to an invite but cannot set it.
 
-## Build and run
+## Menu bar
+
+A phone icon in the menu bar shows the next meeting that will alert, and has these items:
+
+- **Pause for 1 hour** and **Pause until tomorrow** (midnight). The icon changes to a hung-up phone while paused. A meeting that starts during a pause is skipped. If the pause ends less than 5 minutes after a meeting started, that meeting still alerts. The pause survives a restart.
+- **Resume**, shown only while paused.
+- **Test alert now** shows the alert for the next meeting.
+- **Quit You Have a Call** stops the app until the next login.
+
+## Build, install, and run
 
 Requirements: the Xcode Command Line Tools (`xcode-select --install`). Xcode itself is not needed.
 
 ```sh
-./build.sh                                    # compiles and signs build/You Have a Call.app
-open "build/You Have a Call.app"              # runs in the background, no Dock icon
-pkill -x YouHaveACall                         # stops it
+./build.sh      # compiles and signs build/You Have a Call.app
+./install.sh    # copies it to ~/Applications, starts it now and at every login
 ```
+
+Run both after every change. `install.sh` restarts the running copy.
+
+`install.sh` writes a LaunchAgent to `~/Library/LaunchAgents/com.davidwolgemuth.you-have-a-call.plist`.
+`launchd` restarts the app about 10 seconds after a crash, but not after Quit from the menu.
+The app's output goes to `~/Library/Logs/you-have-a-call.log`.
+
+| To | Run |
+|---|---|
+| Start it again after Quit | `open ~/Applications/"You Have a Call.app"` |
+| Stop it and remove it from login | `./install.sh --uninstall` |
+| Print today's events, with ALERT or the reason each is skipped | `./list.sh` |
 
 The first launch asks for full calendar access.
+The first install also shows a macOS "Background Items Added" notification. The app then appears in System Settings > General > Login Items & Extensions.
 
-### Debug flags
+## Code layout
 
-```sh
-# Print today's events on the watched calendars, with ALERT or the reason each is skipped.
-./list.sh
-
-# Show the alert for the next upcoming meeting right away.
-open -n "build/You Have a Call.app" --args --test
-```
+| File | Contents |
+|---|---|
+| `app/Settings.swift` | The constants you are likely to change |
+| `app/Events.swift` | Which events alert, video link detection, response status |
+| `app/Speech.swift` | Voice list, `say`, and title cleanup for speech |
+| `app/CallWindow.swift` | The alert window and its buttons |
+| `app/AppDelegate.swift` | Calendar access, the 10-second check, the menu bar icon |
+| `app/main.swift` | Starts the app |
 
 ## Settings
 
-Settings are constants at the top of `app/main.swift`. Change one, run `./build.sh`, and restart the app.
+Settings are constants in `app/Settings.swift`. Change one, then run `./build.sh && ./install.sh`.
 
 | Constant | Default | Meaning |
 |---|---|---|
@@ -86,7 +108,6 @@ Use `/usr/bin/openssl` (LibreSSL). Homebrew's OpenSSL 3 writes a `.p12` format t
 
 ## Not done yet
 
-- It does not start at login. After a restart, run `open "build/You Have a Call.app"` again.
 - Two meetings that start together open two windows, and both voices talk at once.
 - The Zoom link pattern has not been tested against a real Zoom invite.
 
